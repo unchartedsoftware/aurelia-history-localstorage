@@ -1,5 +1,8 @@
 # aurelia-history-shorturl
 
+A highly-specific implementation of the Aurelia History API that keeps URL length down by removing all query params from the fragment and pushing them into the browser's history via `pushState`. Even though `pushState` is used the URLs still appear and work like `#/` fragment routes so no server-support is necessary. This implementation requires `pushState` and does not check to ensure it's supported or fallback. 
+
+This library specifically targets IE11 due to it's limited URL length support.
 
 
 ## Platform Support
