@@ -1,23 +1,16 @@
 {
-  "name": "aurelia-history-browser",
-  "version": "1.1.1",
+  "name": "aurelia-history-shorturl",
+  "version": "0.1.0",
   "description": "An implementation of the Aurelia history interface based on standard browser hash change and push state mechanisms.",
-  "keywords": [
-    "aurelia",
-    "history",
-    "router"
-  ],
-  "homepage": "http://aurelia.io",
   "bugs": {
-    "url": "https://github.com/aurelia/history-browser/issues"
+    "url": "https://github.com/unchartedsoftware/aurelia-history-shorturl/issues"
   },
   "license": "MIT",
-  "author": "Rob Eisenberg <rob@bluespire.com> (http://robeisenberg.com/)",
-  "main": "dist/commonjs/aurelia-history-browser.js",
-  "typings": "dist/aurelia-history-browser.d.ts",
+  "main": "dist/commonjs/aurelia-history-shorturl.js",
+  "typings": "dist/aurelia-history-shorturl.d.ts",
   "repository": {
     "type": "git",
-    "url": "http://github.com/aurelia/history-browser"
+    "url": "http://github.com/unchartedsoftware/aurelia-history-shorturl"
   },
   "scripts": {
     "test": "gulp test",
@@ -25,15 +18,10 @@
   },
   "jspm": {
     "registry": "npm",
-    "jspmPackage": true,
-    "main": "aurelia-history-browser",
+    "main": "aurelia-history-shorturl",
     "format": "amd",
     "directories": {
       "dist": "dist/amd"
-    },
-    "peerDependencies": {
-      "aurelia-history": "^1.0.0",
-      "aurelia-pal": "^1.0.0"
     },
     "dependencies": {
       "aurelia-history": "^1.0.0",

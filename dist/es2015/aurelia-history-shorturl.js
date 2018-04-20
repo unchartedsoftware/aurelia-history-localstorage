@@ -80,11 +80,15 @@ export let DefaultLinkHandler = class DefaultLinkHandler extends LinkHandler {
 };
 
 export function configure(config) {
-  config.singleton(History, BrowserHistory);
+  config.singleton(History, LocalStorageHistory);
   config.transient(LinkHandler, DefaultLinkHandler);
 }
 
-export let BrowserHistory = (_temp = _class = class BrowserHistory extends History {
+function stateEqual(a, b) {
+  return a.fragment === b.fragment && a.query === b.query;
+}
+
+export let LocalStorageHistory = (_temp = _class = class LocalStorageHistory extends History {
   constructor(linkHandler) {
     super();
 
@@ -101,42 +105,15 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
       throw new Error('History has already been activated.');
     }
 
-    let wantsPushState = !!options.pushState;
-
     this._isActive = true;
     this.options = Object.assign({}, { root: '/' }, this.options, options);
 
     this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
-    this._wantsHashChange = this.options.hashChange !== false;
-    this._hasPushState = !!(this.options.pushState && this.history && this.history.pushState);
+    PLATFORM.addEventListener('popstate', this._checkUrlCallback);
 
-    let eventName;
-    if (this._hasPushState) {
-      eventName = 'popstate';
-    } else if (this._wantsHashChange) {
-      eventName = 'hashchange';
-    }
-
-    PLATFORM.addEventListener(eventName, this._checkUrlCallback);
-
-    if (this._wantsHashChange && wantsPushState) {
-      let loc = this.location;
-      let atRoot = loc.pathname.replace(/[^\/]$/, '$&/') === this.root;
-
-      if (!this._hasPushState && !atRoot) {
-        this.fragment = this._getFragment(null, true);
-        this.location.replace(this.root + this.location.search + '#' + this.fragment);
-
-        return true;
-      } else if (this._hasPushState && atRoot && loc.hash) {
-          this.fragment = this._getHash().replace(routeStripper, '');
-          this.history.replaceState({}, DOM.title, this.root + this.fragment + loc.search);
-        }
-    }
-
-    if (!this.fragment) {
-      this.fragment = this._getFragment();
+    if (!this.historyState) {
+      this.historyState = this._getHistoryState();
     }
 
     this.linkHandler.activate(this);
@@ -155,7 +132,7 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
 
   getAbsoluteRoot() {
     let origin = createOrigin(this.location.protocol, this.location.hostname, this.location.port);
-    return `${ origin }${ this.root }`;
+    return `${origin}${this.root}`;
   }
 
   navigate(fragment, { trigger = true, replace = false } = {}) {
@@ -168,31 +145,23 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
       return false;
     }
 
-    fragment = this._getFragment(fragment || '');
-
-    if (this.fragment === fragment && !replace) {
+    const historyState = this._parseFragment(fragment || '');
+    if (stateEqual(this.historyState, historyState) && !replace) {
       return false;
     }
+    this.historyState = historyState;
 
-    this.fragment = fragment;
-
-    let url = this.root + fragment;
+    let url = this.root + '#' + historyState.fragment;
 
     if (fragment === '' && url !== '/') {
       url = url.slice(0, -1);
     }
+    url = url.replace('//', '/');
 
-    if (this._hasPushState) {
-      url = url.replace('//', '/');
-      this.history[replace ? 'replaceState' : 'pushState']({}, DOM.title, url);
-    } else if (this._wantsHashChange) {
-      updateHash(this.location, fragment, replace);
-    } else {
-      return this.location.assign(url);
-    }
+    this.history[replace ? 'replaceState' : 'pushState']({ query: historyState.query }, DOM.title, url);
 
     if (trigger) {
-      return this._loadUrl(fragment);
+      return this._loadUrl(historyState.stateString);
     }
   }
 
@@ -204,13 +173,6 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
     DOM.title = title;
   }
 
-  setState(key, value) {
-    let state = Object.assign({}, this.history.state);
-    let { pathname, search, hash } = this.location;
-    state[key] = value;
-    this.history.replaceState(state, null, `${ pathname }${ search }${ hash }`);
-  }
-
   getState(key) {
     let state = Object.assign({}, this.history.state);
     return state[key];
@@ -220,35 +182,41 @@ export let BrowserHistory = (_temp = _class = class BrowserHistory extends Histo
     return this.location.hash.substr(1);
   }
 
-  _getFragment(fragment, forcePushState) {
-    let root;
+  _parseFragment(fragment, query) {
+    query = query || '';
 
-    if (!fragment) {
-      if (this._hasPushState || !this._wantsHashChange || forcePushState) {
-        fragment = this.location.pathname + this.location.search;
-        root = this.root.replace(trailingSlash, '');
-        if (!fragment.indexOf(root)) {
-          fragment = fragment.substr(root.length);
-        }
-      } else {
-        fragment = this._getHash();
-      }
+    let queryIndex = fragment.indexOf('?');
+    if (queryIndex >= 0) {
+      query = fragment.slice(queryIndex + 1).trim();
+      fragment = fragment.slice(0, queryIndex);
     }
 
-    return '/' + fragment.replace(routeStripper, '');
+    fragment = '/' + fragment.replace(routeStripper, '');
+
+    const stateString = fragment + (query.length > 0 ? '?' + query : '');
+
+    return { fragment, query, stateString };
+  }
+
+  _getHistoryState() {
+    return this._parseFragment(this._getHash(), this.getState('query'));
   }
 
   _checkUrl() {
-    let current = this._getFragment();
-    if (current !== this.fragment) {
+    let current = this._getHistoryState();
+    if (!stateEqual(current, this.historyState)) {
       this._loadUrl();
     }
   }
 
-  _loadUrl(fragmentOverride) {
-    let fragment = this.fragment = this._getFragment(fragmentOverride);
+  _loadUrl(stateOverride) {
+    let historyStateString = stateOverride;
+    if (historyStateString) {
+      const currentState = this._getHistoryState();
+      historyStateString = currentState.stateString;
+    }
 
-    return this.options.routeHandler ? this.options.routeHandler(fragment) : false;
+    return this.options.routeHandler ? this.options.routeHandler(historyStateString) : false;
   }
 }, _class.inject = [LinkHandler], _temp);
 
@@ -256,19 +224,8 @@ const routeStripper = /^#?\/*|\s+$/g;
 
 const rootStripper = /^\/+|\/+$/g;
 
-const trailingSlash = /\/$/;
-
 const absoluteUrl = /^([a-z][a-z0-9+\-.]*:)?\/\//i;
 
-function updateHash(location, fragment, replace) {
-  if (replace) {
-    let href = location.href.replace(/(javascript:|#).*$/, '');
-    location.replace(href + '#' + fragment);
-  } else {
-    location.hash = '#' + fragment;
-  }
-}
-
 function createOrigin(protocol, hostname, port) {
-  return `${ protocol }//${ hostname }${ port ? ':' + port : '' }`;
+  return `${protocol}//${hostname}${port ? ':' + port : ''}`;
 }

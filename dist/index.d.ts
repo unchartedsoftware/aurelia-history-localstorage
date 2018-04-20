@@ -1,1 +1,1 @@
-export * from 'aurelia-history-browser/aurelia-history-browser';
+export * from 'aurelia-history-shorturl/aurelia-history-shorturl';

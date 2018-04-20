@@ -1,15 +1,15 @@
-define(['exports', './aurelia-history-browser'], function (exports, _aureliaHistoryBrowser) {
+define(['exports', './aurelia-history-shorturl'], function (exports, _aureliaHistoryShorturl) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
-  Object.keys(_aureliaHistoryBrowser).forEach(function (key) {
+  Object.keys(_aureliaHistoryShorturl).forEach(function (key) {
     if (key === "default" || key === "__esModule") return;
     Object.defineProperty(exports, key, {
       enumerable: true,
       get: function () {
-        return _aureliaHistoryBrowser[key];
+        return _aureliaHistoryShorturl[key];
       }
     });
   });

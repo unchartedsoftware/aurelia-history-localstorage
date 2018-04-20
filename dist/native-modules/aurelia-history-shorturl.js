@@ -30,11 +30,9 @@ export var DefaultLinkHandler = function (_LinkHandler) {
     var _this = _possibleConstructorReturn(this, _LinkHandler.call(this));
 
     _this.handler = function (e) {
-      var _DefaultLinkHandler$g = DefaultLinkHandler.getEventInfo(e);
-
-      var shouldHandleEvent = _DefaultLinkHandler$g.shouldHandleEvent;
-      var href = _DefaultLinkHandler$g.href;
-
+      var _DefaultLinkHandler$g = DefaultLinkHandler.getEventInfo(e),
+          shouldHandleEvent = _DefaultLinkHandler$g.shouldHandleEvent,
+          href = _DefaultLinkHandler$g.href;
 
       if (shouldHandleEvent) {
         e.preventDefault();
@@ -103,14 +101,18 @@ export var DefaultLinkHandler = function (_LinkHandler) {
 }(LinkHandler);
 
 export function configure(config) {
-  config.singleton(History, BrowserHistory);
+  config.singleton(History, LocalStorageHistory);
   config.transient(LinkHandler, DefaultLinkHandler);
 }
 
-export var BrowserHistory = (_temp = _class = function (_History) {
-  _inherits(BrowserHistory, _History);
+function stateEqual(a, b) {
+  return a.fragment === b.fragment && a.query === b.query;
+}
 
-  function BrowserHistory(linkHandler) {
+export var LocalStorageHistory = (_temp = _class = function (_History) {
+  _inherits(LocalStorageHistory, _History);
+
+  function LocalStorageHistory(linkHandler) {
     
 
     var _this2 = _possibleConstructorReturn(this, _History.call(this));
@@ -124,47 +126,20 @@ export var BrowserHistory = (_temp = _class = function (_History) {
     return _this2;
   }
 
-  BrowserHistory.prototype.activate = function activate(options) {
+  LocalStorageHistory.prototype.activate = function activate(options) {
     if (this._isActive) {
       throw new Error('History has already been activated.');
     }
-
-    var wantsPushState = !!options.pushState;
 
     this._isActive = true;
     this.options = Object.assign({}, { root: '/' }, this.options, options);
 
     this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
-    this._wantsHashChange = this.options.hashChange !== false;
-    this._hasPushState = !!(this.options.pushState && this.history && this.history.pushState);
+    PLATFORM.addEventListener('popstate', this._checkUrlCallback);
 
-    var eventName = void 0;
-    if (this._hasPushState) {
-      eventName = 'popstate';
-    } else if (this._wantsHashChange) {
-      eventName = 'hashchange';
-    }
-
-    PLATFORM.addEventListener(eventName, this._checkUrlCallback);
-
-    if (this._wantsHashChange && wantsPushState) {
-      var loc = this.location;
-      var atRoot = loc.pathname.replace(/[^\/]$/, '$&/') === this.root;
-
-      if (!this._hasPushState && !atRoot) {
-        this.fragment = this._getFragment(null, true);
-        this.location.replace(this.root + this.location.search + '#' + this.fragment);
-
-        return true;
-      } else if (this._hasPushState && atRoot && loc.hash) {
-          this.fragment = this._getHash().replace(routeStripper, '');
-          this.history.replaceState({}, DOM.title, this.root + this.fragment + loc.search);
-        }
-    }
-
-    if (!this.fragment) {
-      this.fragment = this._getFragment();
+    if (!this.historyState) {
+      this.historyState = this._getHistoryState();
     }
 
     this.linkHandler.activate(this);
@@ -174,25 +149,24 @@ export var BrowserHistory = (_temp = _class = function (_History) {
     }
   };
 
-  BrowserHistory.prototype.deactivate = function deactivate() {
+  LocalStorageHistory.prototype.deactivate = function deactivate() {
     PLATFORM.removeEventListener('popstate', this._checkUrlCallback);
     PLATFORM.removeEventListener('hashchange', this._checkUrlCallback);
     this._isActive = false;
     this.linkHandler.deactivate();
   };
 
-  BrowserHistory.prototype.getAbsoluteRoot = function getAbsoluteRoot() {
+  LocalStorageHistory.prototype.getAbsoluteRoot = function getAbsoluteRoot() {
     var origin = createOrigin(this.location.protocol, this.location.hostname, this.location.port);
     return '' + origin + this.root;
   };
 
-  BrowserHistory.prototype.navigate = function navigate(fragment) {
-    var _ref = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
-
-    var _ref$trigger = _ref.trigger;
-    var trigger = _ref$trigger === undefined ? true : _ref$trigger;
-    var _ref$replace = _ref.replace;
-    var replace = _ref$replace === undefined ? false : _ref$replace;
+  LocalStorageHistory.prototype.navigate = function navigate(fragment) {
+    var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
+        _ref$trigger = _ref.trigger,
+        trigger = _ref$trigger === undefined ? true : _ref$trigger,
+        _ref$replace = _ref.replace,
+        replace = _ref$replace === undefined ? false : _ref$replace;
 
     if (fragment && absoluteUrl.test(fragment)) {
       this.location.href = fragment;
@@ -203,112 +177,88 @@ export var BrowserHistory = (_temp = _class = function (_History) {
       return false;
     }
 
-    fragment = this._getFragment(fragment || '');
-
-    if (this.fragment === fragment && !replace) {
+    var historyState = this._parseFragment(fragment || '');
+    if (stateEqual(this.historyState, historyState) && !replace) {
       return false;
     }
+    this.historyState = historyState;
 
-    this.fragment = fragment;
-
-    var url = this.root + fragment;
+    var url = this.root + '#' + historyState.fragment;
 
     if (fragment === '' && url !== '/') {
       url = url.slice(0, -1);
     }
+    url = url.replace('//', '/');
 
-    if (this._hasPushState) {
-      url = url.replace('//', '/');
-      this.history[replace ? 'replaceState' : 'pushState']({}, DOM.title, url);
-    } else if (this._wantsHashChange) {
-      updateHash(this.location, fragment, replace);
-    } else {
-      return this.location.assign(url);
-    }
+    this.history[replace ? 'replaceState' : 'pushState']({ query: historyState.query }, DOM.title, url);
 
     if (trigger) {
-      return this._loadUrl(fragment);
+      return this._loadUrl(historyState.stateString);
     }
   };
 
-  BrowserHistory.prototype.navigateBack = function navigateBack() {
+  LocalStorageHistory.prototype.navigateBack = function navigateBack() {
     this.history.back();
   };
 
-  BrowserHistory.prototype.setTitle = function setTitle(title) {
+  LocalStorageHistory.prototype.setTitle = function setTitle(title) {
     DOM.title = title;
   };
 
-  BrowserHistory.prototype.setState = function setState(key, value) {
-    var state = Object.assign({}, this.history.state);
-    var _location = this.location;
-    var pathname = _location.pathname;
-    var search = _location.search;
-    var hash = _location.hash;
-
-    state[key] = value;
-    this.history.replaceState(state, null, '' + pathname + search + hash);
-  };
-
-  BrowserHistory.prototype.getState = function getState(key) {
+  LocalStorageHistory.prototype.getState = function getState(key) {
     var state = Object.assign({}, this.history.state);
     return state[key];
   };
 
-  BrowserHistory.prototype._getHash = function _getHash() {
+  LocalStorageHistory.prototype._getHash = function _getHash() {
     return this.location.hash.substr(1);
   };
 
-  BrowserHistory.prototype._getFragment = function _getFragment(fragment, forcePushState) {
-    var root = void 0;
+  LocalStorageHistory.prototype._parseFragment = function _parseFragment(fragment, query) {
+    query = query || '';
 
-    if (!fragment) {
-      if (this._hasPushState || !this._wantsHashChange || forcePushState) {
-        fragment = this.location.pathname + this.location.search;
-        root = this.root.replace(trailingSlash, '');
-        if (!fragment.indexOf(root)) {
-          fragment = fragment.substr(root.length);
-        }
-      } else {
-        fragment = this._getHash();
-      }
+    var queryIndex = fragment.indexOf('?');
+    if (queryIndex >= 0) {
+      query = fragment.slice(queryIndex + 1).trim();
+      fragment = fragment.slice(0, queryIndex);
     }
 
-    return '/' + fragment.replace(routeStripper, '');
+    fragment = '/' + fragment.replace(routeStripper, '');
+
+    var stateString = fragment + (query.length > 0 ? '?' + query : '');
+
+    return { fragment: fragment, query: query, stateString: stateString };
   };
 
-  BrowserHistory.prototype._checkUrl = function _checkUrl() {
-    var current = this._getFragment();
-    if (current !== this.fragment) {
+  LocalStorageHistory.prototype._getHistoryState = function _getHistoryState() {
+    return this._parseFragment(this._getHash(), this.getState('query'));
+  };
+
+  LocalStorageHistory.prototype._checkUrl = function _checkUrl() {
+    var current = this._getHistoryState();
+    if (!stateEqual(current, this.historyState)) {
       this._loadUrl();
     }
   };
 
-  BrowserHistory.prototype._loadUrl = function _loadUrl(fragmentOverride) {
-    var fragment = this.fragment = this._getFragment(fragmentOverride);
+  LocalStorageHistory.prototype._loadUrl = function _loadUrl(stateOverride) {
+    var historyStateString = stateOverride;
+    if (historyStateString) {
+      var currentState = this._getHistoryState();
+      historyStateString = currentState.stateString;
+    }
 
-    return this.options.routeHandler ? this.options.routeHandler(fragment) : false;
+    return this.options.routeHandler ? this.options.routeHandler(historyStateString) : false;
   };
 
-  return BrowserHistory;
+  return LocalStorageHistory;
 }(History), _class.inject = [LinkHandler], _temp);
 
 var routeStripper = /^#?\/*|\s+$/g;
 
 var rootStripper = /^\/+|\/+$/g;
 
-var trailingSlash = /\/$/;
-
 var absoluteUrl = /^([a-z][a-z0-9+\-.]*:)?\/\//i;
-
-function updateHash(location, fragment, replace) {
-  if (replace) {
-    var _href = location.href.replace(/(javascript:|#).*$/, '');
-    location.replace(_href + '#' + fragment);
-  } else {
-    location.hash = '#' + fragment;
-  }
-}
 
 function createOrigin(protocol, hostname, port) {
   return protocol + '//' + hostname + (port ? ':' + port : '');

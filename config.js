@@ -1,8 +1,15 @@
 System.config({
   defaultJSExtensions: true,
+  transpiler: "babel",
+  babelOptions: {
+    "optional": [
+      "runtime",
+      "optimisation.modules.system"
+    ]
+  },
   paths: {
     "github:*": "jspm_packages/github/*",
-    "aurelia-history-browser/*": "dist/*",
+    "aurelia-history-shorturl/*": "dist/*",
     "npm:*": "jspm_packages/npm/*"
   },
 

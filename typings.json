@@ -1,4 +1,4 @@
 {
-  "name": "aurelia-history-browser",
-  "main": "dist/aurelia-history-browser.d.ts"
+  "name": "aurelia-history-shorturl",
+  "main": "dist/aurelia-history-shorturl.d.ts"
 }
