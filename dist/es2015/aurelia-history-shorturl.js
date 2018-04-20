@@ -93,7 +93,12 @@ export let ShortUrlHistory = (_temp = _class = class ShortUrlHistory extends His
     super();
 
     this._isActive = false;
-    this._checkUrlCallback = this._checkUrl.bind(this);
+    this._onPopStateCallback = () => {
+      this._checkUrl(false);
+    };
+    this._onHashChangeCallback = () => {
+      this._checkUrl(true);
+    };
 
     this.location = PLATFORM.location;
     this.history = PLATFORM.history;
@@ -110,8 +115,8 @@ export let ShortUrlHistory = (_temp = _class = class ShortUrlHistory extends His
 
     this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
-    PLATFORM.addEventListener('popstate', this._checkUrlCallback);
-    PLATFORM.addEventListener('hashchange', this._checkUrlCallback);
+    PLATFORM.addEventListener('popstate', this._onPopStateCallback);
+    PLATFORM.addEventListener('hashchange', this._onHashChangeCallback);
 
     if (!this.historyState) {
       this.historyState = this._getHistoryState();
@@ -125,8 +130,8 @@ export let ShortUrlHistory = (_temp = _class = class ShortUrlHistory extends His
   }
 
   deactivate() {
-    PLATFORM.removeEventListener('popstate', this._checkUrlCallback);
-    PLATFORM.removeEventListener('hashchange', this._checkUrlCallback);
+    PLATFORM.removeEventListener('popstate', this._onPopStateCallback);
+    PLATFORM.removeEventListener('hashchange', this._onHashChangeCallback);
     this._isActive = false;
     this.linkHandler.deactivate();
   }
@@ -159,7 +164,7 @@ export let ShortUrlHistory = (_temp = _class = class ShortUrlHistory extends His
     }
     url = url.replace('//', '/');
 
-    this.history[replace ? 'replaceState' : 'pushState']({ query: historyState.query }, DOM.title, url);
+    this.history[replace ? 'replaceState' : 'pushState'](historyState, DOM.title, url);
 
     if (trigger) {
       return this._loadUrl(historyState);
@@ -200,13 +205,23 @@ export let ShortUrlHistory = (_temp = _class = class ShortUrlHistory extends His
   }
 
   _getHistoryState() {
-    return this._parseFragment(this._getHash(), this.getState('query'));
+    const hashOnlyState = this._parseFragment(this._getHash());
+    if (hashOnlyState.query.length > 0) {
+      return hashOnlyState;
+    }
+    if (hashOnlyState.fragment === this.getState('fragment')) {
+      return this._parseFragment(this._getHash(), this.getState('query'));
+    } else {
+      let { pathname, search, hash } = this.location;
+      this.history.replaceState(hashOnlyState, null, `${pathname}${search}${hash}`);
+      return hashOnlyState;
+    }
   }
 
-  _checkUrl() {
+  _checkUrl(isHashChange) {
     let current = this._getHistoryState();
     if (!stateEqual(current, this.historyState)) {
-      this._loadUrl();
+      this._loadUrl(current);
     }
   }
 

@@ -118,7 +118,12 @@ export var ShortUrlHistory = (_temp = _class = function (_History) {
     var _this2 = _possibleConstructorReturn(this, _History.call(this));
 
     _this2._isActive = false;
-    _this2._checkUrlCallback = _this2._checkUrl.bind(_this2);
+    _this2._onPopStateCallback = function () {
+      _this2._checkUrl(false);
+    };
+    _this2._onHashChangeCallback = function () {
+      _this2._checkUrl(true);
+    };
 
     _this2.location = PLATFORM.location;
     _this2.history = PLATFORM.history;
@@ -136,8 +141,8 @@ export var ShortUrlHistory = (_temp = _class = function (_History) {
 
     this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
-    PLATFORM.addEventListener('popstate', this._checkUrlCallback);
-    PLATFORM.addEventListener('hashchange', this._checkUrlCallback);
+    PLATFORM.addEventListener('popstate', this._onPopStateCallback);
+    PLATFORM.addEventListener('hashchange', this._onHashChangeCallback);
 
     if (!this.historyState) {
       this.historyState = this._getHistoryState();
@@ -151,8 +156,8 @@ export var ShortUrlHistory = (_temp = _class = function (_History) {
   };
 
   ShortUrlHistory.prototype.deactivate = function deactivate() {
-    PLATFORM.removeEventListener('popstate', this._checkUrlCallback);
-    PLATFORM.removeEventListener('hashchange', this._checkUrlCallback);
+    PLATFORM.removeEventListener('popstate', this._onPopStateCallback);
+    PLATFORM.removeEventListener('hashchange', this._onHashChangeCallback);
     this._isActive = false;
     this.linkHandler.deactivate();
   };
@@ -191,7 +196,7 @@ export var ShortUrlHistory = (_temp = _class = function (_History) {
     }
     url = url.replace('//', '/');
 
-    this.history[replace ? 'replaceState' : 'pushState']({ query: historyState.query }, DOM.title, url);
+    this.history[replace ? 'replaceState' : 'pushState'](historyState, DOM.title, url);
 
     if (trigger) {
       return this._loadUrl(historyState);
@@ -232,13 +237,27 @@ export var ShortUrlHistory = (_temp = _class = function (_History) {
   };
 
   ShortUrlHistory.prototype._getHistoryState = function _getHistoryState() {
-    return this._parseFragment(this._getHash(), this.getState('query'));
+    var hashOnlyState = this._parseFragment(this._getHash());
+    if (hashOnlyState.query.length > 0) {
+      return hashOnlyState;
+    }
+    if (hashOnlyState.fragment === this.getState('fragment')) {
+      return this._parseFragment(this._getHash(), this.getState('query'));
+    } else {
+      var _location = this.location,
+          pathname = _location.pathname,
+          search = _location.search,
+          hash = _location.hash;
+
+      this.history.replaceState(hashOnlyState, null, '' + pathname + search + hash);
+      return hashOnlyState;
+    }
   };
 
-  ShortUrlHistory.prototype._checkUrl = function _checkUrl() {
+  ShortUrlHistory.prototype._checkUrl = function _checkUrl(isHashChange) {
     var current = this._getHistoryState();
     if (!stateEqual(current, this.historyState)) {
-      this._loadUrl();
+      this._loadUrl(current);
     }
   };
 

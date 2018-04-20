@@ -31,7 +31,8 @@ export class ShortUrlHistory extends History {
     super();
 
     this._isActive = false;
-    this._checkUrlCallback = this._checkUrl.bind(this);
+    this._onPopStateCallback = () => { this._checkUrl(false); };
+    this._onHashChangeCallback = () => { this._checkUrl(true); };
 
     this.location = PLATFORM.location;
     this.history = PLATFORM.history;
@@ -60,8 +61,10 @@ export class ShortUrlHistory extends History {
     this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
     // Listen on both - one of the two will fire and we'll see the change
-    PLATFORM.addEventListener('popstate', this._checkUrlCallback);
-    PLATFORM.addEventListener('hashchange', this._checkUrlCallback);
+    // IE doesn't fire popstate when the hash changes: https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/3740423/
+    // so listening on hashchange is essential
+    PLATFORM.addEventListener('popstate', this._onPopStateCallback);
+    PLATFORM.addEventListener('hashchange', this._onHashChangeCallback);
 
     if (!this.historyState) {
       this.historyState = this._getHistoryState();
@@ -78,8 +81,8 @@ export class ShortUrlHistory extends History {
    * Deactivates the history object.
    */
   deactivate(): void {
-    PLATFORM.removeEventListener('popstate', this._checkUrlCallback);
-    PLATFORM.removeEventListener('hashchange', this._checkUrlCallback);
+    PLATFORM.removeEventListener('popstate', this._onPopStateCallback);
+    PLATFORM.removeEventListener('hashchange', this._onHashChangeCallback);
     this._isActive = false;
     this.linkHandler.deactivate();
   }
@@ -131,7 +134,7 @@ export class ShortUrlHistory extends History {
     url = url.replace('//', '/');
 
     // Use pushstate to set the fragment as a real URL, the query in the history state
-    this.history[replace ? 'replaceState' : 'pushState']({query: historyState.query}, DOM.title, url);
+    this.history[replace ? 'replaceState' : 'pushState'](historyState, DOM.title, url);
 
     if (trigger) {
       return this._loadUrl(historyState);
@@ -184,19 +187,37 @@ export class ShortUrlHistory extends History {
   }
 
   _getHistoryState(): object {
-    return this._parseFragment(this._getHash(), this.getState('query'));
+    // IE doesn't fire popstate on hash changes (https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/3740423/)
+    // AND IE isn't resetting the `history.state` object either so our stored query is wrong. As such, we need
+    // to validate that the history.state applies to the url we think it does:
+    // First get the fragment without the query of the current hash
+    const hashOnlyState = this._parseFragment(this._getHash());
+    if (hashOnlyState.query.length > 0) {
+      // The hash has a query in it, assume it's correct, use it
+      return hashOnlyState;
+    }
+    if (hashOnlyState.fragment === this.getState('fragment')) {
+      // The stored query matches the fragment, ok to use
+      return this._parseFragment(this._getHash(), this.getState('query'));
+    } else {
+      // The stored query doesn't match the fragment, the hash must have changed without history.state being updated
+      // Force the current state to update to what we now understand to be true
+      let { pathname, search, hash } = this.location;
+      this.history.replaceState(hashOnlyState, null, `${pathname}${search}${hash}`);
+      return hashOnlyState;
+    }
   }
 
   /**
    * Event listener for changes to the browser history state. This will fire when the browser updates
    * history state - generally through forward/back but also will fire when the code here in this
-   * class updates the state.
+   * class updates the state. `isHashChange` is provided for debugging purposes
    */
-  _checkUrl(): boolean {
+  _checkUrl(isHashChange: boolean): boolean {
     // Browser fired a change event - check to see if actually a change
     let current = this._getHistoryState();
     if (!stateEqual(current, this.historyState)) {
-      this._loadUrl();
+      this._loadUrl(current);
     }
   }
 

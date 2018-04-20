@@ -144,7 +144,12 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
       var _this2 = _possibleConstructorReturn(this, _History.call(this));
 
       _this2._isActive = false;
-      _this2._checkUrlCallback = _this2._checkUrl.bind(_this2);
+      _this2._onPopStateCallback = function () {
+        _this2._checkUrl(false);
+      };
+      _this2._onHashChangeCallback = function () {
+        _this2._checkUrl(true);
+      };
 
       _this2.location = _aureliaPal.PLATFORM.location;
       _this2.history = _aureliaPal.PLATFORM.history;
@@ -162,8 +167,8 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
 
       this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
-      _aureliaPal.PLATFORM.addEventListener('popstate', this._checkUrlCallback);
-      _aureliaPal.PLATFORM.addEventListener('hashchange', this._checkUrlCallback);
+      _aureliaPal.PLATFORM.addEventListener('popstate', this._onPopStateCallback);
+      _aureliaPal.PLATFORM.addEventListener('hashchange', this._onHashChangeCallback);
 
       if (!this.historyState) {
         this.historyState = this._getHistoryState();
@@ -177,8 +182,8 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
     };
 
     ShortUrlHistory.prototype.deactivate = function deactivate() {
-      _aureliaPal.PLATFORM.removeEventListener('popstate', this._checkUrlCallback);
-      _aureliaPal.PLATFORM.removeEventListener('hashchange', this._checkUrlCallback);
+      _aureliaPal.PLATFORM.removeEventListener('popstate', this._onPopStateCallback);
+      _aureliaPal.PLATFORM.removeEventListener('hashchange', this._onHashChangeCallback);
       this._isActive = false;
       this.linkHandler.deactivate();
     };
@@ -217,7 +222,7 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
       }
       url = url.replace('//', '/');
 
-      this.history[replace ? 'replaceState' : 'pushState']({ query: historyState.query }, _aureliaPal.DOM.title, url);
+      this.history[replace ? 'replaceState' : 'pushState'](historyState, _aureliaPal.DOM.title, url);
 
       if (trigger) {
         return this._loadUrl(historyState);
@@ -258,13 +263,27 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
     };
 
     ShortUrlHistory.prototype._getHistoryState = function _getHistoryState() {
-      return this._parseFragment(this._getHash(), this.getState('query'));
+      var hashOnlyState = this._parseFragment(this._getHash());
+      if (hashOnlyState.query.length > 0) {
+        return hashOnlyState;
+      }
+      if (hashOnlyState.fragment === this.getState('fragment')) {
+        return this._parseFragment(this._getHash(), this.getState('query'));
+      } else {
+        var _location = this.location,
+            pathname = _location.pathname,
+            search = _location.search,
+            hash = _location.hash;
+
+        this.history.replaceState(hashOnlyState, null, '' + pathname + search + hash);
+        return hashOnlyState;
+      }
     };
 
-    ShortUrlHistory.prototype._checkUrl = function _checkUrl() {
+    ShortUrlHistory.prototype._checkUrl = function _checkUrl(isHashChange) {
       var current = this._getHistoryState();
       if (!stateEqual(current, this.historyState)) {
-        this._loadUrl();
+        this._loadUrl(current);
       }
     };
 
