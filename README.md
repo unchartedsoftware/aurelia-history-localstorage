@@ -4,6 +4,8 @@ A highly-specific implementation of the Aurelia History API that keeps URL lengt
 
 This library specifically targets IE11 due to it's limited URL length support.
 
+*Note:* This is a copy-and-edit version of [aurelia-history-browser](https://github.com/aurelia/history-browser)
+
 
 ## Platform Support
 
