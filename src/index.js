@@ -59,7 +59,9 @@ export class ShortUrlHistory extends History {
     // Normalize root to always include a leading and trailing slash.
     this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
+    // Listen on both - one of the two will fire and we'll see the change
     PLATFORM.addEventListener('popstate', this._checkUrlCallback);
+    PLATFORM.addEventListener('hashchange', this._checkUrlCallback);
 
     if (!this.historyState) {
       this.historyState = this._getHistoryState();
@@ -132,7 +134,7 @@ export class ShortUrlHistory extends History {
     this.history[replace ? 'replaceState' : 'pushState']({query: historyState.query}, DOM.title, url);
 
     if (trigger) {
-      return this._loadUrl(historyState.stateString);
+      return this._loadUrl(historyState);
     }
   }
 
@@ -201,16 +203,15 @@ export class ShortUrlHistory extends History {
   /**
    * Fires a route change back to Aurelia using the current URL
    */
-  _loadUrl(stateOverride: string): boolean {
+  _loadUrl(stateOverride: object): boolean {
     // Either get the current state or parse the given state
-    let historyStateString = stateOverride;
-    if (!historyStateString) {
-      const currentState = this._getHistoryState();
-      historyStateString = currentState.stateString;
+    if (!stateOverride) {
+      stateOverride = this._getHistoryState();
     }
+    this.historyState = stateOverride;
 
     return this.options.routeHandler ?
-      this.options.routeHandler(historyStateString) :
+      this.options.routeHandler(this.historyState.stateString) :
       false;
   }
 }

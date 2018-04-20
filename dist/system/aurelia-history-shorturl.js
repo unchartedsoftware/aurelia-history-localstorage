@@ -176,6 +176,7 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
           this.root = ('/' + this.options.root + '/').replace(rootStripper, '/');
 
           PLATFORM.addEventListener('popstate', this._checkUrlCallback);
+          PLATFORM.addEventListener('hashchange', this._checkUrlCallback);
 
           if (!this.historyState) {
             this.historyState = this._getHistoryState();
@@ -232,7 +233,7 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
           this.history[replace ? 'replaceState' : 'pushState']({ query: historyState.query }, DOM.title, url);
 
           if (trigger) {
-            return this._loadUrl(historyState.stateString);
+            return this._loadUrl(historyState);
           }
         };
 
@@ -281,13 +282,12 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
         };
 
         ShortUrlHistory.prototype._loadUrl = function _loadUrl(stateOverride) {
-          var historyStateString = stateOverride;
-          if (!historyStateString) {
-            var currentState = this._getHistoryState();
-            historyStateString = currentState.stateString;
+          if (!stateOverride) {
+            stateOverride = this._getHistoryState();
           }
+          this.historyState = stateOverride;
 
-          return this.options.routeHandler ? this.options.routeHandler(historyStateString) : false;
+          return this.options.routeHandler ? this.options.routeHandler(this.historyState.stateString) : false;
         };
 
         return ShortUrlHistory;
