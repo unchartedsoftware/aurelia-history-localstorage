@@ -3,7 +3,7 @@
 System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context) {
   "use strict";
 
-  var DOM, PLATFORM, History, _class, _temp, LinkHandler, DefaultLinkHandler, LocalStorageHistory, routeStripper, rootStripper, absoluteUrl;
+  var DOM, PLATFORM, History, _class, _temp, LinkHandler, DefaultLinkHandler, ShortUrlHistory, routeStripper, rootStripper, absoluteUrl;
 
   function _possibleConstructorReturn(self, call) {
     if (!self) {
@@ -32,7 +32,7 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
   
 
   function configure(config) {
-    config.singleton(History, LocalStorageHistory);
+    config.singleton(History, ShortUrlHistory);
     config.transient(LinkHandler, DefaultLinkHandler);
   }
 
@@ -148,10 +148,10 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
 
       _export('DefaultLinkHandler', DefaultLinkHandler);
 
-      _export('LocalStorageHistory', LocalStorageHistory = (_temp = _class = function (_History) {
-        _inherits(LocalStorageHistory, _History);
+      _export('ShortUrlHistory', ShortUrlHistory = (_temp = _class = function (_History) {
+        _inherits(ShortUrlHistory, _History);
 
-        function LocalStorageHistory(linkHandler) {
+        function ShortUrlHistory(linkHandler) {
           
 
           var _this2 = _possibleConstructorReturn(this, _History.call(this));
@@ -165,7 +165,7 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
           return _this2;
         }
 
-        LocalStorageHistory.prototype.activate = function activate(options) {
+        ShortUrlHistory.prototype.activate = function activate(options) {
           if (this._isActive) {
             throw new Error('History has already been activated.');
           }
@@ -188,19 +188,19 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
           }
         };
 
-        LocalStorageHistory.prototype.deactivate = function deactivate() {
+        ShortUrlHistory.prototype.deactivate = function deactivate() {
           PLATFORM.removeEventListener('popstate', this._checkUrlCallback);
           PLATFORM.removeEventListener('hashchange', this._checkUrlCallback);
           this._isActive = false;
           this.linkHandler.deactivate();
         };
 
-        LocalStorageHistory.prototype.getAbsoluteRoot = function getAbsoluteRoot() {
+        ShortUrlHistory.prototype.getAbsoluteRoot = function getAbsoluteRoot() {
           var origin = createOrigin(this.location.protocol, this.location.hostname, this.location.port);
           return '' + origin + this.root;
         };
 
-        LocalStorageHistory.prototype.navigate = function navigate(fragment) {
+        ShortUrlHistory.prototype.navigate = function navigate(fragment) {
           var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
               _ref$trigger = _ref.trigger,
               trigger = _ref$trigger === undefined ? true : _ref$trigger,
@@ -236,24 +236,24 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
           }
         };
 
-        LocalStorageHistory.prototype.navigateBack = function navigateBack() {
+        ShortUrlHistory.prototype.navigateBack = function navigateBack() {
           this.history.back();
         };
 
-        LocalStorageHistory.prototype.setTitle = function setTitle(title) {
+        ShortUrlHistory.prototype.setTitle = function setTitle(title) {
           DOM.title = title;
         };
 
-        LocalStorageHistory.prototype.getState = function getState(key) {
+        ShortUrlHistory.prototype.getState = function getState(key) {
           var state = Object.assign({}, this.history.state);
           return state[key];
         };
 
-        LocalStorageHistory.prototype._getHash = function _getHash() {
+        ShortUrlHistory.prototype._getHash = function _getHash() {
           return this.location.hash.substr(1);
         };
 
-        LocalStorageHistory.prototype._parseFragment = function _parseFragment(fragment, query) {
+        ShortUrlHistory.prototype._parseFragment = function _parseFragment(fragment, query) {
           query = query || '';
 
           var queryIndex = fragment.indexOf('?');
@@ -269,18 +269,18 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
           return { fragment: fragment, query: query, stateString: stateString };
         };
 
-        LocalStorageHistory.prototype._getHistoryState = function _getHistoryState() {
+        ShortUrlHistory.prototype._getHistoryState = function _getHistoryState() {
           return this._parseFragment(this._getHash(), this.getState('query'));
         };
 
-        LocalStorageHistory.prototype._checkUrl = function _checkUrl() {
+        ShortUrlHistory.prototype._checkUrl = function _checkUrl() {
           var current = this._getHistoryState();
           if (!stateEqual(current, this.historyState)) {
             this._loadUrl();
           }
         };
 
-        LocalStorageHistory.prototype._loadUrl = function _loadUrl(stateOverride) {
+        ShortUrlHistory.prototype._loadUrl = function _loadUrl(stateOverride) {
           var historyStateString = stateOverride;
           if (historyStateString) {
             var currentState = this._getHistoryState();
@@ -290,10 +290,10 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
           return this.options.routeHandler ? this.options.routeHandler(historyStateString) : false;
         };
 
-        return LocalStorageHistory;
+        return ShortUrlHistory;
       }(History), _class.inject = [LinkHandler], _temp));
 
-      _export('LocalStorageHistory', LocalStorageHistory);
+      _export('ShortUrlHistory', ShortUrlHistory);
 
       routeStripper = /^#?\/*|\s+$/g;
       rootStripper = /^\/+|\/+$/g;

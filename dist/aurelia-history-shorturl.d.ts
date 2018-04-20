@@ -97,7 +97,7 @@ export declare class DefaultLinkHandler extends LinkHandler {
 }
 
 /**
- * Configures the plugin by registering LocalStorageHistory as the implementation of History in the DI container.
+ * Configures the plugin by registering ShortUrlHistory as the implementation of History in the DI container.
  * @param config The FrameworkConfiguration object provided by Aurelia.
  */
 export declare function configure(config: Object): void;
@@ -105,12 +105,12 @@ export declare function configure(config: Object): void;
 /**
  * An implementation of the basic history API.
  */
-export declare class LocalStorageHistory extends History {
+export declare class ShortUrlHistory extends History {
   static inject: any;
   
   //static hasPushState = !!(this.history && this.history.pushState);
   /**
-     * Creates an instance of LocalStorageHistory
+     * Creates an instance of ShortUrlHistory
      * @param linkHandler An instance of LinkHandler.
      */
   constructor(linkHandler: LinkHandler);

@@ -80,7 +80,7 @@ export let DefaultLinkHandler = class DefaultLinkHandler extends LinkHandler {
 };
 
 export function configure(config) {
-  config.singleton(History, LocalStorageHistory);
+  config.singleton(History, ShortUrlHistory);
   config.transient(LinkHandler, DefaultLinkHandler);
 }
 
@@ -88,7 +88,7 @@ function stateEqual(a, b) {
   return a.fragment === b.fragment && a.query === b.query;
 }
 
-export let LocalStorageHistory = (_temp = _class = class LocalStorageHistory extends History {
+export let ShortUrlHistory = (_temp = _class = class ShortUrlHistory extends History {
   constructor(linkHandler) {
     super();
 

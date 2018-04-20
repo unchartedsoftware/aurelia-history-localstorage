@@ -1,10 +1,10 @@
 import './setup';
-import { LocalStorageHistory } from '../src/index';
+import { ShortUrlHistory } from '../src/index';
 import { LinkHandler } from '../src/link-handler';
 
 describe('browser history', () => {
   it('should have some tests', () => {
-    const bh = new LocalStorageHistory();
+    const bh = new ShortUrlHistory();
     expect(bh).toBe(bh);
   });
 
@@ -15,7 +15,7 @@ describe('browser history', () => {
         fragment: '/admin/user/123',
         stateString: '/admin/user/123'
       };
-      const bh = new LocalStorageHistory();
+      const bh = new ShortUrlHistory();
 
       expect(bh._parseFragment('admin/user/123')).toEqual(expected);
       expect(bh._parseFragment('admin/user/123?')).toEqual(expected);
@@ -37,7 +37,7 @@ describe('browser history', () => {
         fragment: '/admin/user/123',
         stateString: '/admin/user/123?a=1&b=42&cat[]=dog&cat[]=mouse'
       };
-      const bh = new LocalStorageHistory();
+      const bh = new ShortUrlHistory();
 
       expect(bh._parseFragment('admin/user/123?a=1&b=42&cat[]=dog&cat[]=mouse')).toEqual(expected);
       expect(bh._parseFragment('/admin/user/123?a=1&b=42&cat[]=dog&cat[]=mouse')).toEqual(expected);
@@ -54,7 +54,7 @@ describe('browser history', () => {
 
   describe('getAbsoluteRoot', () => {
     it('should return a valid URL with a trailing slash', () => {
-      const bh = new LocalStorageHistory(new LinkHandler());
+      const bh = new ShortUrlHistory(new LinkHandler());
       bh.activate({});
       bh.location = {
         protocol: 'http:',
@@ -67,7 +67,7 @@ describe('browser history', () => {
 
     it('should return a valid URL with a port', () => {
       const options = {};
-      const bh = new LocalStorageHistory(new LinkHandler());
+      const bh = new ShortUrlHistory(new LinkHandler());
       bh.activate(options);
       bh.location = {
         protocol: 'https:',
@@ -80,7 +80,7 @@ describe('browser history', () => {
 
     it('should return a valid URL with a trailing fragment if root is set', () => {
       const options = { root: '/application/' }
-      const bh = new LocalStorageHistory(new LinkHandler());
+      const bh = new ShortUrlHistory(new LinkHandler());
       bh.activate(options);
       bh.location = {
         protocol: 'https:',
@@ -94,7 +94,7 @@ describe('browser history', () => {
 
   describe('_getHistoryState', () => {
     it('should get browser page state by parsing the hash', () => {
-      const bh = new LocalStorageHistory(new LinkHandler());
+      const bh = new ShortUrlHistory(new LinkHandler());
       bh.activate({});
       bh.location = {
         protocol: 'http:',
@@ -108,7 +108,7 @@ describe('browser history', () => {
     });
 
     it('should get browser page state available through history.state', () => {
-      const bh = new LocalStorageHistory(new LinkHandler());
+      const bh = new ShortUrlHistory(new LinkHandler());
       bh.activate({});
       bh.history.pushState({query: 'xyz'}, '', bh.location.href);
       expect(bh._getHistoryState().query).toBe('xyz');
@@ -117,7 +117,7 @@ describe('browser history', () => {
 
   describe('navigate', () => {
     it('should update the browser pushstate to include query and string from url', () => {
-      const bh = new LocalStorageHistory(new LinkHandler());
+      const bh = new ShortUrlHistory(new LinkHandler());
       bh.activate({});
 
       spyOn(bh.history, 'pushState').and.callThrough();

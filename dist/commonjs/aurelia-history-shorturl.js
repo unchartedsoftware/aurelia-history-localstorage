@@ -3,7 +3,7 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.LocalStorageHistory = exports.DefaultLinkHandler = exports.LinkHandler = undefined;
+exports.ShortUrlHistory = exports.DefaultLinkHandler = exports.LinkHandler = undefined;
 
 var _class, _temp;
 
@@ -111,7 +111,7 @@ var DefaultLinkHandler = exports.DefaultLinkHandler = function (_LinkHandler) {
 }(LinkHandler);
 
 function configure(config) {
-  config.singleton(_aureliaHistory.History, LocalStorageHistory);
+  config.singleton(_aureliaHistory.History, ShortUrlHistory);
   config.transient(LinkHandler, DefaultLinkHandler);
 }
 
@@ -119,10 +119,10 @@ function stateEqual(a, b) {
   return a.fragment === b.fragment && a.query === b.query;
 }
 
-var LocalStorageHistory = exports.LocalStorageHistory = (_temp = _class = function (_History) {
-  _inherits(LocalStorageHistory, _History);
+var ShortUrlHistory = exports.ShortUrlHistory = (_temp = _class = function (_History) {
+  _inherits(ShortUrlHistory, _History);
 
-  function LocalStorageHistory(linkHandler) {
+  function ShortUrlHistory(linkHandler) {
     
 
     var _this2 = _possibleConstructorReturn(this, _History.call(this));
@@ -136,7 +136,7 @@ var LocalStorageHistory = exports.LocalStorageHistory = (_temp = _class = functi
     return _this2;
   }
 
-  LocalStorageHistory.prototype.activate = function activate(options) {
+  ShortUrlHistory.prototype.activate = function activate(options) {
     if (this._isActive) {
       throw new Error('History has already been activated.');
     }
@@ -159,19 +159,19 @@ var LocalStorageHistory = exports.LocalStorageHistory = (_temp = _class = functi
     }
   };
 
-  LocalStorageHistory.prototype.deactivate = function deactivate() {
+  ShortUrlHistory.prototype.deactivate = function deactivate() {
     _aureliaPal.PLATFORM.removeEventListener('popstate', this._checkUrlCallback);
     _aureliaPal.PLATFORM.removeEventListener('hashchange', this._checkUrlCallback);
     this._isActive = false;
     this.linkHandler.deactivate();
   };
 
-  LocalStorageHistory.prototype.getAbsoluteRoot = function getAbsoluteRoot() {
+  ShortUrlHistory.prototype.getAbsoluteRoot = function getAbsoluteRoot() {
     var origin = createOrigin(this.location.protocol, this.location.hostname, this.location.port);
     return '' + origin + this.root;
   };
 
-  LocalStorageHistory.prototype.navigate = function navigate(fragment) {
+  ShortUrlHistory.prototype.navigate = function navigate(fragment) {
     var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
         _ref$trigger = _ref.trigger,
         trigger = _ref$trigger === undefined ? true : _ref$trigger,
@@ -207,24 +207,24 @@ var LocalStorageHistory = exports.LocalStorageHistory = (_temp = _class = functi
     }
   };
 
-  LocalStorageHistory.prototype.navigateBack = function navigateBack() {
+  ShortUrlHistory.prototype.navigateBack = function navigateBack() {
     this.history.back();
   };
 
-  LocalStorageHistory.prototype.setTitle = function setTitle(title) {
+  ShortUrlHistory.prototype.setTitle = function setTitle(title) {
     _aureliaPal.DOM.title = title;
   };
 
-  LocalStorageHistory.prototype.getState = function getState(key) {
+  ShortUrlHistory.prototype.getState = function getState(key) {
     var state = Object.assign({}, this.history.state);
     return state[key];
   };
 
-  LocalStorageHistory.prototype._getHash = function _getHash() {
+  ShortUrlHistory.prototype._getHash = function _getHash() {
     return this.location.hash.substr(1);
   };
 
-  LocalStorageHistory.prototype._parseFragment = function _parseFragment(fragment, query) {
+  ShortUrlHistory.prototype._parseFragment = function _parseFragment(fragment, query) {
     query = query || '';
 
     var queryIndex = fragment.indexOf('?');
@@ -240,18 +240,18 @@ var LocalStorageHistory = exports.LocalStorageHistory = (_temp = _class = functi
     return { fragment: fragment, query: query, stateString: stateString };
   };
 
-  LocalStorageHistory.prototype._getHistoryState = function _getHistoryState() {
+  ShortUrlHistory.prototype._getHistoryState = function _getHistoryState() {
     return this._parseFragment(this._getHash(), this.getState('query'));
   };
 
-  LocalStorageHistory.prototype._checkUrl = function _checkUrl() {
+  ShortUrlHistory.prototype._checkUrl = function _checkUrl() {
     var current = this._getHistoryState();
     if (!stateEqual(current, this.historyState)) {
       this._loadUrl();
     }
   };
 
-  LocalStorageHistory.prototype._loadUrl = function _loadUrl(stateOverride) {
+  ShortUrlHistory.prototype._loadUrl = function _loadUrl(stateOverride) {
     var historyStateString = stateOverride;
     if (historyStateString) {
       var currentState = this._getHistoryState();
@@ -261,7 +261,7 @@ var LocalStorageHistory = exports.LocalStorageHistory = (_temp = _class = functi
     return this.options.routeHandler ? this.options.routeHandler(historyStateString) : false;
   };
 
-  return LocalStorageHistory;
+  return ShortUrlHistory;
 }(_aureliaHistory.History), _class.inject = [LinkHandler], _temp);
 
 var routeStripper = /^#?\/*|\s+$/g;
