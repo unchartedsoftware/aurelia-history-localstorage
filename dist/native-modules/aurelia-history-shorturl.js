@@ -243,7 +243,7 @@ export var ShortUrlHistory = (_temp = _class = function (_History) {
 
   ShortUrlHistory.prototype._loadUrl = function _loadUrl(stateOverride) {
     var historyStateString = stateOverride;
-    if (historyStateString) {
+    if (!historyStateString) {
       var currentState = this._getHistoryState();
       historyStateString = currentState.stateString;
     }

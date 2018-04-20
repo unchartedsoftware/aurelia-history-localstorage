@@ -282,7 +282,7 @@ System.register(['aurelia-pal', 'aurelia-history'], function (_export, _context)
 
         ShortUrlHistory.prototype._loadUrl = function _loadUrl(stateOverride) {
           var historyStateString = stateOverride;
-          if (historyStateString) {
+          if (!historyStateString) {
             var currentState = this._getHistoryState();
             historyStateString = currentState.stateString;
           }

@@ -211,7 +211,7 @@ export let ShortUrlHistory = (_temp = _class = class ShortUrlHistory extends His
 
   _loadUrl(stateOverride) {
     let historyStateString = stateOverride;
-    if (historyStateString) {
+    if (!historyStateString) {
       const currentState = this._getHistoryState();
       historyStateString = currentState.stateString;
     }

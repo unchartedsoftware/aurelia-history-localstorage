@@ -269,7 +269,7 @@ define(['exports', 'aurelia-pal', 'aurelia-history'], function (exports, _aureli
 
     ShortUrlHistory.prototype._loadUrl = function _loadUrl(stateOverride) {
       var historyStateString = stateOverride;
-      if (historyStateString) {
+      if (!historyStateString) {
         var currentState = this._getHistoryState();
         historyStateString = currentState.stateString;
       }

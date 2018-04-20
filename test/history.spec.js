@@ -136,4 +136,8 @@ describe('browser history', () => {
       expect(bh.history.pushState.calls.argsFor(4)).toEqual([{query: 'b=2'}, '', '/#/']);
     });
   });
+
+  describe('_loadUrl', () => {
+    // it('should')
+  });
 });

@@ -204,7 +204,7 @@ export class ShortUrlHistory extends History {
   _loadUrl(stateOverride: string): boolean {
     // Either get the current state or parse the given state
     let historyStateString = stateOverride;
-    if (historyStateString) {
+    if (!historyStateString) {
       const currentState = this._getHistoryState();
       historyStateString = currentState.stateString;
     }
